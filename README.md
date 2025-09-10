@@ -37,8 +37,8 @@ Sistema para **gerenciar eventos** (oficinas, palestras e reuniões internas), p
 
 ## 🛠️ Tecnologias Utilizadas
 Sugestão para desenvolvimento:  
-- **Backend:**  Python (Django ou Flask)  
-- **Frontend:**  Angular  
+- **Backend:**  Python (Fast API)
+- **Frontend:**  AngularJS  
 - **Banco de Dados:** PostgreSQL 
 - **Autenticação:** 
 - **Exportação de Relatórios:**  
