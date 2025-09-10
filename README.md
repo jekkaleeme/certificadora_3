@@ -1,5 +1,5 @@
-# certificadora_3
-
+---
+# CERTIFICADORA 3
 
 ---
 # 📅 Sistema de Gerenciamento de Eventos  
@@ -38,11 +38,11 @@ Sistema para **gerenciar eventos** (oficinas, palestras e reuniões internas), p
 
 ## 🛠️ Tecnologias Utilizadas
 Sugestão para desenvolvimento:  
-- **Backend:** Node.js / Java / Python (Django ou Flask)  
-- **Frontend:** React / Angular / Vue  
-- **Banco de Dados:** PostgreSQL / MySQL / MongoDB  
-- **Autenticação:** JWT / OAuth2  
-- **Exportação de Relatórios:** PDFKit, ExcelJS  
+- **Backend:**  Python (Django ou Flask)  
+- **Frontend:**  Angular  
+- **Banco de Dados:** PostgreSQL 
+- **Autenticação:** 
+- **Exportação de Relatórios:**  
 
 ---
 
@@ -50,13 +50,10 @@ Sugestão para desenvolvimento:
 
 ```bash
 # Clone o repositório
-git clone https://github.com/seu-usuario/seu-projeto.git
+git clone https://github.com/jekkaleeme/certificadora_3
 
 # Acesse a pasta do projeto
-cd seu-projeto
-
-# Instale as dependências
-npm install   # ou pip install -r requirements.txt
+cd certificadora_3
 
 # Execute o servidor
 npm start     # ou python manage.py runserver
