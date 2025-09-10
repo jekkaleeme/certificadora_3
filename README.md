@@ -15,9 +15,8 @@ Sistema para **gerenciar eventos** (oficinas, palestras e reuniões internas), p
 ## 📌 Índice
 1. [✨ Funcionalidades](#-funcionalidades)  
 2. [🛠️ Tecnologias Utilizadas](#️-tecnologias-utilizadas)  
-3. [🚀 Como Executar](#-como-executar)  
-4. [🤝 Contribuindo](#-contribuindo)  
-5. [📄 Licença](#-licença)  
+3. [🚀 Como Executar](#-como-executar)
+
 
 ---
 
