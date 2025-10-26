@@ -80,7 +80,7 @@ ${stats.topEvents.map((e, i) => `${i + 1}. ${e.name} - ${e.enrollments} inscriç
             <h1 className="text-4xl font-bold bg-gradient-meninas bg-clip-text text-transparent mb-2">
               Estatísticas e Relatórios
             </h1>
-            <p className="text-muted-foreground">Visualize dados e métricas dos eventos (RF26-RF27)</p>
+            <p className="text-muted-foreground">Visualize dados e métricas dos eventos</p>
           </div>
           <Button onClick={handleExportReport}>
             <Download className="w-4 h-4 mr-2" />

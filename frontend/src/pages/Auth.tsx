@@ -50,7 +50,7 @@ const Auth = () => {
           <div className="w-12 h-12 rounded-lg bg-gradient-primary flex items-center justify-center">
             <Calendar className="w-7 h-7 text-primary-foreground" />
           </div>
-          <span className="text-2xl font-bold text-foreground">EventHub</span>
+          <span className="text-2xl font-bold text-foreground">Meninas Digitais</span>
         </Link>
 
         <Card className="border-border shadow-card-hover">
@@ -113,7 +113,7 @@ const Auth = () => {
                       <DialogHeader>
                         <DialogTitle>Redefinir Senha</DialogTitle>
                         <DialogDescription>
-                          Digite seu email para receber instruções de redefinição de senha (RF25)
+                          Digite seu email para receber instruções de redefinição de senha
                         </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handlePasswordReset}>

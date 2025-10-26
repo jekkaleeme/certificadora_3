@@ -133,7 +133,7 @@ const UserManagement = () => {
           <h1 className="text-4xl font-bold bg-gradient-meninas bg-clip-text text-transparent mb-2">
             Gerenciamento de Usuários
           </h1>
-          <p className="text-muted-foreground">Gerencie todos os usuários do sistema (RF22-RF24)</p>
+          <p className="text-muted-foreground">Gerencie todos os usuários do sistema</p>
         </div>
 
         <Card>

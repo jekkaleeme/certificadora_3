@@ -294,7 +294,7 @@ const AdminDashboard = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="materials">Materiais Complementares (RF34)</Label>
+                    <Label htmlFor="materials">Materiais Complementares</Label>
                     <Input
                       id="materials"
                       value={newEvent.materials}
@@ -312,7 +312,7 @@ const AdminDashboard = () => {
                       className="rounded border-gray-300"
                     />
                     <Label htmlFor="isPrivate" className="cursor-pointer">
-                      Evento privado (RF14, RF20 - apenas para membros autenticados)
+                      Evento privado
                     </Label>
                   </div>
 
