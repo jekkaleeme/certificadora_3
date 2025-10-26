@@ -49,6 +49,6 @@ Antes de configurar o projeto, garanta que você tenha as seguintes ferramentas 
    ```
 
 2. O servidor de desenvolvimento estará rodando e acessível em:
-   * **URL Local:** [http://localhost:5173](http://localhost:8080)
+   * **URL Local:** [http://localhost:8080](http://localhost:8080)
    * A URL exata será mostrada no terminal após a execução do comando
 
