@@ -1,8 +1,25 @@
-// API Service - Prepared for backend integration
-// TODO: Replace with actual backend endpoints
+import axios from 'axios';
+
+// --- 1. CONFIGURAÇÃO DO AXIOS ---
+export const api = axios.create({
+  baseURL: 'http://localhost:8000', 
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// --- 2. INTERFACES ---
 
 export interface Event {
-  id: string;
+  id: string; 
   title: string;
   type: "oficina" | "palestra" | "reuniao";
   date: string;
@@ -15,8 +32,8 @@ export interface Event {
   targetAudience?: string;
   duration?: string;
   instructor?: string;
-  isPrivate: boolean; // RF14, RF20: Controle de privacidade
-  materials?: string; // RF34: Materiais complementares
+  isPrivate: boolean;
+  materials?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -49,143 +66,131 @@ export interface Rating {
   createdAt: string;
 }
 
-// Event API
+// --- 3. IMPLEMENTAÇÃO REAL ---
+
 export const eventAPI = {
-  // Get all events
   getAll: async (): Promise<Event[]> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/events').then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // Rota backend: GET /events
+    const response = await api.get('/events'); 
+    return response.data;
   },
 
-  // Get event by ID
   getById: async (id: string): Promise<Event> => {
-    // TODO: Replace with actual API call
-    // return fetch(`/api/events/${id}`).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // Rota backend: GET /events/{event_id}
+    const response = await api.get(`/events/${id}`);
+    return response.data;
   },
 
-  // Create new event (admin only)
   create: async (event: Omit<Event, "id" | "createdAt" | "updatedAt">): Promise<Event> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/events', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(event)
-    // }).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // Rota backend: POST /events
+    const response = await api.post('/events', event);
+    return response.data;
   },
 
-  // Update event (admin only)
   update: async (id: string, event: Partial<Event>): Promise<Event> => {
-    // TODO: Replace with actual API call
-    // return fetch(`/api/events/${id}`, {
-    //   method: 'PUT',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(event)
-    // }).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // Rota backend: PUT /events/{event_id}
+    const response = await api.put(`/events/${id}`, event);
+    return response.data;
   },
 
-  // Delete event (admin only)
   delete: async (id: string): Promise<void> => {
-    // TODO: Replace with actual API call
-    // return fetch(`/api/events/${id}`, { method: 'DELETE' });
-    throw new Error("Backend not implemented yet");
+    // Rota backend: DELETE /events/{event_id}
+    await api.delete(`/events/${id}`);
   }
 };
 
-// User API
 export const userAPI = {
-  // Get current user
   getCurrent: async (): Promise<User> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/users/me').then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // Rota backend: GET /users/me
+    const response = await api.get('/users/me');
+    return response.data;
   },
 
-  // Register new user
+  // Adicionado para suportar o UserManagement.tsx
+  getAll: async (): Promise<User[]> => {
+    // Rota backend: GET /users/all
+    const response = await api.get('/users/all');
+    return response.data;
+  },
+
   register: async (user: Omit<User, "id" | "createdAt">): Promise<User> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/users/register', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(user)
-    // }).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // Rota backend: POST /users
+    const response = await api.post('/users', user);
+    return response.data;
   },
 
-  // Login
   login: async (email: string, password: string): Promise<{ user: User; token: string }> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/users/login', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ email, password })
-    // }).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // Rota backend: POST /token
+    // O FastAPI OAuth2PasswordRequestForm exige Form Data (username, password)
+    const formData = new FormData();
+    formData.append('username', email);
+    formData.append('password', password);
+
+    const response = await api.post('/token', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+    
+    // O backend retorna { access_token: string, token_type: string }
+    if (response.data.access_token) {
+      localStorage.setItem('token', response.data.access_token);
+    }
+    
+    // Como o endpoint /token só retorna o token, buscamos o usuário manualmente logo depois
+    // para manter a compatibilidade com o que o front espera
+    const userResponse = await api.get('/users/me', {
+      headers: { Authorization: `Bearer ${response.data.access_token}` }
+    });
+
+    return { token: response.data.access_token, user: userResponse.data };
   },
 
-  // Logout
   logout: async (): Promise<void> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/users/logout', { method: 'POST' });
-    throw new Error("Backend not implemented yet");
+    localStorage.removeItem('token');
   }
 };
 
-// Enrollment API
 export const enrollmentAPI = {
-  // Get user enrollments
+  // ⚠️ ROTA FALTANDO NO BACKEND: Listar inscrições de um usuário
+  // Seu backend não tem GET /users/{id}/inscriptions ou GET /inscriptions/user/{id}
+  // Isso fará o UserDashboard quebrar ou vir vazio.
   getByUser: async (userId: string): Promise<Enrollment[]> => {
-    // TODO: Replace with actual API call
-    // return fetch(`/api/enrollments/user/${userId}`).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    console.warn("Backend sem rota para listar inscrições do usuário. Retornando vazio.");
+    // return []; // Descomente para evitar erro 404 até implementar no back
+    const response = await api.get(`/users/me/inscriptions`); // Tentativa
+    return response.data;
   },
 
-  // Get event enrollments (admin only)
+  // Rota backend: GET /events/{event_id}/inscriptions
   getByEvent: async (eventId: string): Promise<Enrollment[]> => {
-    // TODO: Replace with actual API call
-    // return fetch(`/api/enrollments/event/${eventId}`).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    const response = await api.get(`/events/${eventId}/inscriptions`);
+    return response.data;
   },
 
-  // Enroll in event
+  // Rota backend: POST /events/{event_id}/inscribe
   create: async (userId: string, eventId: string): Promise<Enrollment> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/enrollments', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ userId, eventId })
-    // }).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    // O backend usa o usuário logado (token), então enviamos um corpo vazio ou dados extras se InscriptionCreate exigir
+    const response = await api.post(`/events/${eventId}/inscribe`, {});
+    return response.data;
   },
 
-  // Cancel enrollment
+  // ⚠️ ROTA FALTANDO NO BACKEND: Cancelar inscrição
   cancel: async (enrollmentId: string): Promise<void> => {
-    // TODO: Replace with actual API call
-    // return fetch(`/api/enrollments/${enrollmentId}`, { method: 'DELETE' });
-    throw new Error("Backend not implemented yet");
+    console.warn("Backend sem rota para cancelar inscrição.");
+    // await api.delete(`/inscriptions/${enrollmentId}`);
   }
 };
 
-// Rating API
 export const ratingAPI = {
-  // Get event ratings
+  // ⚠️ ROTAS FALTANDO NO BACKEND: Sistema de avaliações não existe nos arquivos enviados.
+  
   getByEvent: async (eventId: string): Promise<Rating[]> => {
-    // TODO: Replace with actual API call
-    // return fetch(`/api/ratings/event/${eventId}`).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    console.warn("Backend sem rota de avaliações.");
+    return [];
   },
 
-  // Create rating
   create: async (rating: Omit<Rating, "id" | "createdAt">): Promise<Rating> => {
-    // TODO: Replace with actual API call
-    // return fetch('/api/ratings', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify(rating)
-    // }).then(res => res.json());
-    throw new Error("Backend not implemented yet");
+    throw new Error("Backend de avaliações não implementado.");
   }
 };

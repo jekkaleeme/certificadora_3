@@ -1,12 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from typing import List
+
 from app.schemas.user import UserCreate, UserRead, UserUpdate, UserRole
+from app.schemas.inscription import InscriptionRead
 from app.services import user_service
 from app.db.base import get_db 
 from app.db.models.user import User 
+from app.db.models.inscription import Inscription
 from app.api.deps import get_current_user, get_current_admin_user 
 from app.api.deps import get_current_organizer_user
-from typing import List
 
 router = APIRouter()
 
@@ -39,6 +43,24 @@ async def read_users_me(
     Retorna os dados do usuário autenticado.
     """
     return current_user
+
+@router.get(
+    "/users/me/inscriptions", 
+    response_model=List[InscriptionRead]
+)
+async def read_my_inscriptions(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Retorna todas as inscrições do usuário logado.
+    Usado no Painel do Usuário (UserDashboard).
+    """
+    # Busca inscrições onde user_id é o ID do usuário atual
+    # Nota: Assume que o modelo Inscription tem o campo 'user_id'
+    result = await db.execute(select(Inscription).where(Inscription.user_id == current_user.id))
+    inscriptions = result.scalars().all()
+    return inscriptions
 
 @router.get(
     "/users/all",

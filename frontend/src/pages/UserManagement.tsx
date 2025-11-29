@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,44 +8,66 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { UserPlus, Pencil, Trash2, Download, Search } from "lucide-react";
+import { UserPlus, Pencil, Trash2, Download, Search, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { api, userAPI, User } from "@/services/api";
 
-interface User {
-  id: string;
+// Interface local para o formulário
+interface UserFormData {
   name: string;
   email: string;
   role: "admin" | "user";
-  age?: number;
-  phone?: string;
-  school?: string;
-  createdAt: string;
+  age: string;
+  phone: string;
+  school: string;
+  password?: string;
 }
 
-const mockUsers: User[] = [
-  { id: "1", name: "Admin User", email: "admin@example.com", role: "admin", createdAt: "2024-01-01" },
-  { id: "2", name: "Maria Silva", email: "maria@example.com", role: "user", age: 16, school: "Colégio Estadual", createdAt: "2024-01-10" },
-  { id: "3", name: "Ana Santos", email: "ana@example.com", role: "user", age: 14, school: "Colégio Municipal", createdAt: "2024-01-15" },
-];
-
 const UserManagement = () => {
-  const [users, setUsers] = useState<User[]>(mockUsers);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState<string>("all");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [formData, setFormData] = useState({
+  
+  const [formData, setFormData] = useState<UserFormData>({
     name: "",
     email: "",
-    role: "user" as "admin" | "user",
+    role: "user",
     age: "",
     phone: "",
     school: "",
+    password: ""
   });
+
+  // Carregar usuários ao iniciar
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
+  const fetchUsers = async () => {
+    setIsLoading(true);
+    try {
+      // Usa a função correta do userAPI
+      const data = await userAPI.getAll();
+      setUsers(data);
+    } catch (error) {
+      console.error("Erro ao buscar usuários:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar",
+        description: "Não foi possível buscar a lista de usuários."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase());
+                          user.email.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRole = filterRole === "all" || user.role === filterRole;
     return matchesSearch && matchesRole;
   });
@@ -59,6 +81,7 @@ const UserManagement = () => {
       age: "",
       phone: "",
       school: "",
+      password: ""
     });
     setIsDialogOpen(true);
   };
@@ -72,46 +95,84 @@ const UserManagement = () => {
       age: user.age?.toString() || "",
       phone: user.phone || "",
       school: user.school || "",
+      password: ""
     });
     setIsDialogOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (editingUser) {
-      setUsers(users.map(u => u.id === editingUser.id 
-        ? { ...u, ...formData, age: formData.age ? parseInt(formData.age) : undefined }
-        : u
-      ));
-      toast({ title: "Usuário atualizado!", description: "Os dados foram atualizados com sucesso." });
-    } else {
-      const newUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
+    setIsSaving(true);
+
+    try {
+      const payload = {
         ...formData,
-        age: formData.age ? parseInt(formData.age) : undefined,
-        createdAt: new Date().toISOString().split('T')[0],
+        age: formData.age ? parseInt(formData.age) : null,
       };
-      setUsers([...users, newUser]);
-      toast({ title: "Usuário criado!", description: "O usuário foi cadastrado com sucesso." });
+
+      if (editingUser) {
+        // Editar
+        if (!payload.password) delete payload.password;
+        
+        const response = await api.put(`/users/${editingUser.id}`, payload);
+        
+        setUsers(users.map(u => u.id === editingUser.id ? response.data : u));
+        toast({ title: "Usuário atualizado!", description: "Os dados foram salvos com sucesso." });
+      } else {
+        // Criar
+        if (!payload.password) {
+          toast({ variant: "destructive", title: "Erro", description: "Senha é obrigatória para novos usuários." });
+          setIsSaving(false);
+          return;
+        }
+        const response = await api.post("/users", payload);
+        setUsers([...users, response.data]);
+        toast({ title: "Usuário criado!", description: "Novo usuário cadastrado." });
+      }
+      
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao salvar",
+        description: "Verifique os dados e tente novamente."
+      });
+    } finally {
+      setIsSaving(false);
     }
-    
-    setIsDialogOpen(false);
   };
 
-  const handleDeleteUser = (userId: string) => {
-    if (confirm("Tem certeza que deseja excluir este usuário?")) {
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm("Tem certeza que deseja excluir este usuário? Esta ação é irreversível.")) return;
+
+    try {
+      await api.delete(`/users/${userId}`);
       setUsers(users.filter(u => u.id !== userId));
-      toast({ title: "Usuário excluído", description: "O usuário foi removido do sistema." });
+      toast({ title: "Usuário excluído", description: "O registro foi removido." });
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir",
+        description: "Não foi possível remover o usuário."
+      });
     }
   };
 
   const handleExportUsers = () => {
-    // RF28: Exportar lista de usuários em CSV
     const csvContent = [
       ["Nome", "Email", "Tipo", "Idade", "Telefone", "Escola", "Data de Cadastro"].join(","),
       ...filteredUsers.map(u => 
-        [u.name, u.email, u.role === "admin" ? "Administrador" : "Usuário", u.age || "", u.phone || "", u.school || "", u.createdAt].join(",")
+        [
+          `"${u.name}"`, 
+          u.email, 
+          u.role === "admin" ? "Administrador" : "Usuário", 
+          u.age || "", 
+          u.phone || "", 
+          `"${u.school || ""}"`, 
+          u.createdAt || ""
+        ].join(",")
       )
     ].join("\n");
     
@@ -121,7 +182,7 @@ const UserManagement = () => {
     link.download = `usuarios_${new Date().toISOString().split('T')[0]}.csv`;
     link.click();
     
-    toast({ title: "Exportação concluída!", description: "A lista de usuários foi exportada com sucesso." });
+    toast({ title: "Exportação concluída!", description: "Arquivo CSV gerado." });
   };
 
   return (
@@ -141,10 +202,12 @@ const UserManagement = () => {
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
               <div>
                 <CardTitle>Usuários Cadastrados</CardTitle>
-                <CardDescription>Total: {filteredUsers.length} usuário(s)</CardDescription>
+                <CardDescription>
+                  {isLoading ? "Carregando..." : `Total: ${filteredUsers.length} usuário(s)`}
+                </CardDescription>
               </div>
               <div className="flex gap-2">
-                <Button onClick={handleExportUsers} variant="outline">
+                <Button onClick={handleExportUsers} variant="outline" disabled={isLoading}>
                   <Download className="w-4 h-4 mr-2" />
                   Exportar CSV
                 </Button>
@@ -155,7 +218,7 @@ const UserManagement = () => {
                       Novo Usuário
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="sm:max-w-[600px]">
                     <DialogHeader>
                       <DialogTitle>{editingUser ? "Editar Usuário" : "Novo Usuário"}</DialogTitle>
                       <DialogDescription>
@@ -173,19 +236,39 @@ const UserManagement = () => {
                             required
                           />
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="email">Email *</Label>
-                          <Input
-                            id="email"
-                            type="email"
-                            value={formData.email}
-                            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                            required
-                          />
+                        
+                        <div className="grid grid-cols-2 gap-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="email">Email *</Label>
+                            <Input
+                              id="email"
+                              type="email"
+                              value={formData.email}
+                              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                              required
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="password">
+                              {editingUser ? "Nova Senha (opcional)" : "Senha *"}
+                            </Label>
+                            <Input
+                              id="password"
+                              type="password"
+                              placeholder={editingUser ? "Deixe em branco para manter" : "Senha segura"}
+                              value={formData.password}
+                              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                              required={!editingUser}
+                            />
+                          </div>
                         </div>
+
                         <div className="space-y-2">
                           <Label htmlFor="role">Tipo de Acesso *</Label>
-                          <Select value={formData.role} onValueChange={(value: "admin" | "user") => setFormData({ ...formData, role: value })}>
+                          <Select 
+                            value={formData.role} 
+                            onValueChange={(value: "admin" | "user") => setFormData({ ...formData, role: value })}
+                          >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
@@ -195,14 +278,15 @@ const UserManagement = () => {
                             </SelectContent>
                           </Select>
                         </div>
+
                         <div className="grid grid-cols-2 gap-4">
                           <div className="space-y-2">
                             <Label htmlFor="age">Idade</Label>
                             <Input
                               id="age"
                               type="number"
-                              min="12"
-                              max="59"
+                              min="10"
+                              max="100"
                               value={formData.age}
                               onChange={(e) => setFormData({ ...formData, age: e.target.value })}
                             />
@@ -217,6 +301,7 @@ const UserManagement = () => {
                             />
                           </div>
                         </div>
+                        
                         <div className="space-y-2">
                           <Label htmlFor="school">Escola/Instituição</Label>
                           <Input
@@ -227,8 +312,9 @@ const UserManagement = () => {
                         </div>
                       </div>
                       <DialogFooter>
-                        <Button type="submit">
-                          {editingUser ? "Atualizar" : "Cadastrar"}
+                        <Button type="submit" disabled={isSaving}>
+                          {isSaving && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
+                          {editingUser ? "Salvar Alterações" : "Cadastrar Usuário"}
                         </Button>
                       </DialogFooter>
                     </form>
@@ -273,7 +359,15 @@ const UserManagement = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.length === 0 ? (
+                  {isLoading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8">
+                        <div className="flex justify-center items-center gap-2 text-muted-foreground">
+                          <Loader2 className="w-4 h-4 animate-spin" /> Carregando usuários...
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ) : filteredUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         Nenhum usuário encontrado.
@@ -290,7 +384,9 @@ const UserManagement = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>{user.school || "-"}</TableCell>
-                        <TableCell>{user.createdAt}</TableCell>
+                        <TableCell>
+                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button

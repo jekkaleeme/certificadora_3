@@ -1,10 +1,18 @@
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.db.base import create_tables
 from app.db.models import user
 from app.db.models import event
 from app.db.models import inscription
+
 from app.api.api import api_router 
+
+origins = [
+    "http://localhost:5173", # Porta padrão do Vite/React
+    "http://localhost:3000", # Outra porta comum
+    "http://localhost:8080", # Porta comum do Lovable
+]
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -17,6 +25,14 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Gerenciador de Eventos",
     lifespan=lifespan
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Permite GET, POST, PUT, DELETE, etc.
+    allow_headers=["*"], # Permite todos os cabeçalhos
 )
 
 @app.get("/")

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,57 +9,38 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Plus, Users, Star, Trash2 } from "lucide-react";
+import { Calendar, Plus, Users, Star, Trash2, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { eventAPI, enrollmentAPI, ratingAPI, Event } from "@/services/api";
 
-interface Event {
+// Interfaces auxiliares para exibição na tabela (Juntando dados de IDs com Textos)
+interface EnrollmentDisplay {
   id: string;
-  title: string;
-  type: "workshop" | "palestra" | "reuniao";
-  date: string;
-  time: string;
-  location: string;
-  vacancies: number;
-  totalSlots: number;
-  description: string;
-  isPrivate: boolean; // RF14: Eventos públicos ou privados
-  materials?: string; // RF34: Materiais complementares (links ou anexos)
-  instructor?: string;
-  requirements?: string;
+  eventName: string;
+  userId: string; // A API atual retorna ID, em um app real buscaríamos o nome do usuário
+  status: string;
 }
 
-interface Enrollment {
+interface RatingDisplay {
   id: string;
-  eventId: string;
-  userName: string;
-  userEmail: string;
-  enrolledAt: string;
-}
-
-interface Rating {
-  id: string;
-  eventId: string;
-  userName: string;
+  eventName: string;
+  userId: string;
   rating: number;
-  comment: string;
+  comment?: string;
   createdAt: string;
 }
 
-const mockEnrollments: Enrollment[] = [
-  { id: "1", eventId: "1", userName: "Maria Silva", userEmail: "maria@example.com", enrolledAt: "2024-01-15" },
-  { id: "2", eventId: "1", userName: "Ana Santos", userEmail: "ana@example.com", enrolledAt: "2024-01-16" },
-];
-
-const mockRatings: Rating[] = [
-  { id: "1", eventId: "1", userName: "Maria Silva", rating: 5, comment: "Excelente oficina!", createdAt: "2024-01-20" },
-  { id: "2", eventId: "1", userName: "Ana Santos", rating: 4, comment: "Muito bom, aprendi bastante.", createdAt: "2024-01-21" },
-];
-
 const AdminDashboard = () => {
   const [events, setEvents] = useState<Event[]>([]);
+  const [enrollmentsList, setEnrollmentsList] = useState<EnrollmentDisplay[]>([]);
+  const [ratingsList, setRatingsList] = useState<RatingDisplay[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Estado do formulário
   const [newEvent, setNewEvent] = useState({
     title: "",
-    type: "workshop" as "workshop" | "palestra" | "reuniao",
+    type: "oficina" as "oficina" | "palestra" | "reuniao", // Padrão do backend
     date: "",
     time: "",
     location: "",
@@ -71,80 +52,195 @@ const AdminDashboard = () => {
     requirements: "",
   });
 
-  const handleCreateEvent = (e: React.FormEvent) => {
+  // Mapas de tradução
+  const typeLabels: Record<string, string> = {
+    oficina: "Oficina",
+    palestra: "Palestra",
+    reuniao: "Reunião",
+    workshop: "Oficina"
+  };
+
+  const typeColors: Record<string, string> = {
+    oficina: "bg-gradient-to-r from-purple-500 to-pink-500",
+    palestra: "bg-gradient-to-r from-pink-500 to-orange-500",
+    reuniao: "bg-gradient-to-r from-orange-500 to-yellow-500",
+    workshop: "bg-gradient-to-r from-purple-500 to-pink-500"
+  };
+
+  // Carregar dados iniciais
+  useEffect(() => {
+    loadAllData();
+  }, []);
+
+  const loadAllData = async () => {
+    setIsLoading(true);
+    try {
+      // 1. Busca Eventos
+      const allEvents = await eventAPI.getAll();
+      setEvents(allEvents);
+
+      // 2. Busca Inscrições e Avaliações de cada evento (Para popular as abas de admin)
+      // Nota: Idealmente o backend teria uma rota /admin/enrollments, mas vamos iterar pelos eventos
+      const enrollmentsPromises = allEvents.map(async (ev) => {
+        try {
+          const result = await enrollmentAPI.getByEvent(ev.id);
+          return result.map(enr => ({
+            id: enr.id,
+            eventName: ev.title,
+            userId: enr.userId,
+            status: enr.status
+          }));
+        } catch { return []; }
+      });
+
+      const ratingsPromises = allEvents.map(async (ev) => {
+        try {
+          const result = await ratingAPI.getByEvent(ev.id);
+          return result.map(rt => ({
+            id: rt.id,
+            eventName: ev.title,
+            userId: rt.userId,
+            rating: rt.rating,
+            comment: rt.comment,
+            createdAt: rt.createdAt
+          }));
+        } catch { return []; }
+      });
+
+      const allEnrollmentsResults = await Promise.all(enrollmentsPromises);
+      const allRatingsResults = await Promise.all(ratingsPromises);
+
+      // Flat map para juntar todos os arrays em um só
+      setEnrollmentsList(allEnrollmentsResults.flat());
+      setRatingsList(allRatingsResults.flat());
+
+    } catch (error) {
+      console.error("Erro ao carregar dados do admin:", error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao carregar",
+        description: "Falha ao buscar dados do servidor."
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsSubmitting(true);
     
-    // RF32: Validar conflitos de horário
+    // RF32: Validação simples de conflito no front (poderia ser no back também)
     const hasConflict = events.some(existing => 
       existing.date === newEvent.date && 
       existing.time === newEvent.time && 
-      (existing.location === newEvent.location || existing.instructor === newEvent.instructor)
+      existing.location === newEvent.location
     );
     
     if (hasConflict) {
       toast({
-        title: "Conflito de horário detectado!",
-        description: "Já existe um evento no mesmo horário e local ou com o mesmo instrutor.",
+        title: "Conflito de horário",
+        description: "Já existe um evento neste horário e local.",
         variant: "destructive",
       });
+      setIsSubmitting(false);
       return;
     }
     
-    const event: Event = {
-      id: Math.random().toString(36).substr(2, 9),
-      title: newEvent.title,
-      type: newEvent.type,
-      date: newEvent.date,
-      time: newEvent.time,
-      location: newEvent.location,
-      vacancies: parseInt(newEvent.totalSlots),
-      totalSlots: parseInt(newEvent.totalSlots),
-      description: newEvent.description,
-      isPrivate: newEvent.isPrivate,
-      materials: newEvent.materials || undefined,
-      instructor: newEvent.instructor || undefined,
-      requirements: newEvent.requirements || undefined,
-    };
+    try {
+      // Prepara o objeto para a API
+      const payload = {
+        title: newEvent.title,
+        type: newEvent.type, // Já está tipado corretamente como "oficina" | "palestra" | "reuniao"
+        date: newEvent.date,
+        time: newEvent.time,
+        location: newEvent.location,
+        description: newEvent.description,
+        isPrivate: newEvent.isPrivate,
+        materials: newEvent.materials || undefined,
+        instructor: newEvent.instructor || undefined,
+        requirements: newEvent.requirements || undefined,
+        // Backend espera maxVacancies e availableVacancies
+        maxVacancies: parseInt(newEvent.totalSlots),
+        availableVacancies: parseInt(newEvent.totalSlots), 
+      };
 
-    setEvents([...events, event]);
-    setNewEvent({
-      title: "",
-      type: "workshop",
-      date: "",
-      time: "",
-      location: "",
-      totalSlots: "",
-      description: "",
-      isPrivate: false,
-      materials: "",
-      instructor: "",
-      requirements: "",
-    });
+      await eventAPI.create(payload);
 
-    toast({
-      title: "Evento criado!",
-      description: "O evento foi criado com sucesso.",
-    });
+      toast({
+        title: "Evento criado!",
+        description: "O evento foi salvo no banco de dados.",
+      });
+
+      // Limpa form
+      setNewEvent({
+        title: "",
+        type: "oficina",
+        date: "",
+        time: "",
+        location: "",
+        totalSlots: "",
+        description: "",
+        isPrivate: false,
+        materials: "",
+        instructor: "",
+        requirements: "",
+      });
+
+      // Recarrega lista
+      loadAllData();
+
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao criar",
+        description: "Verifique os dados e tente novamente."
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const handleRemoveEnrollment = (enrollmentId: string) => {
-    toast({
-      title: "Inscrição removida",
-      description: "A inscrição foi removida com sucesso.",
-    });
+  const handleDeleteEvent = async (id: string) => {
+    if (!confirm("Tem certeza que deseja excluir este evento?")) return;
+
+    try {
+      await eventAPI.delete(id);
+      toast({
+        title: "Evento excluído",
+        description: "O evento foi removido com sucesso."
+      });
+      loadAllData(); // Recarrega a lista
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao excluir",
+        description: "Não foi possível excluir o evento."
+      });
+    }
   };
 
-  const typeLabels = {
-    workshop: "Oficina",
-    lecture: "Palestra",
-    meeting: "Reunião",
+  const handleRemoveEnrollment = async (enrollmentId: string) => {
+    if (!confirm("Deseja cancelar esta inscrição?")) return;
+    try {
+      await enrollmentAPI.cancel(enrollmentId);
+      toast({ title: "Inscrição removida com sucesso" });
+      loadAllData();
+    } catch (error) {
+      console.error(error);
+      toast({ variant: "destructive", title: "Erro ao remover inscrição" });
+    }
   };
 
-  const typeColors = {
-    workshop: "bg-gradient-to-r from-purple-500 to-pink-500",
-    lecture: "bg-gradient-to-r from-pink-500 to-orange-500",
-    meeting: "bg-gradient-to-r from-orange-500 to-yellow-500",
-  };
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -166,7 +262,7 @@ const AdminDashboard = () => {
             </TabsTrigger>
             <TabsTrigger value="events">
               <Calendar className="w-4 h-4 mr-2" />
-              Eventos
+              Eventos ({events.length})
             </TabsTrigger>
             <TabsTrigger value="enrollments">
               <Users className="w-4 h-4 mr-2" />
@@ -178,6 +274,7 @@ const AdminDashboard = () => {
             </TabsTrigger>
           </TabsList>
 
+          {/* ABA CRIAR */}
           <TabsContent value="create">
             <Card>
               <CardHeader>
@@ -201,7 +298,7 @@ const AdminDashboard = () => {
                       <Label htmlFor="type">Tipo de Evento</Label>
                       <Select
                         value={newEvent.type}
-                        onValueChange={(value: "workshop" | "palestra" | "reuniao") =>
+                        onValueChange={(value: "oficina" | "palestra" | "reuniao") =>
                           setNewEvent({ ...newEvent, type: value })
                         }
                       >
@@ -209,7 +306,7 @@ const AdminDashboard = () => {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="workshop">Oficina</SelectItem>
+                          <SelectItem value="oficina">Oficina</SelectItem>
                           <SelectItem value="palestra">Palestra</SelectItem>
                           <SelectItem value="reuniao">Reunião</SelectItem>
                         </SelectContent>
@@ -316,8 +413,8 @@ const AdminDashboard = () => {
                     </Label>
                   </div>
 
-                  <Button type="submit" className="w-full">
-                    <Plus className="w-4 h-4 mr-2" />
+                  <Button type="submit" className="w-full" disabled={isSubmitting}>
+                    {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Plus className="w-4 h-4 mr-2" />}
                     Criar Evento
                   </Button>
                 </form>
@@ -325,6 +422,7 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* ABA EVENTOS */}
           <TabsContent value="events">
             <Card>
               <CardHeader>
@@ -334,7 +432,7 @@ const AdminDashboard = () => {
               <CardContent>
                 {events.length === 0 ? (
                   <p className="text-center text-muted-foreground py-8">
-                    Nenhum evento criado ainda.
+                    Nenhum evento criado ainda. Use a aba "Criar Evento".
                   </p>
                 ) : (
                   <div className="space-y-4">
@@ -343,20 +441,25 @@ const AdminDashboard = () => {
                         <div className="flex justify-between items-start mb-2">
                           <div>
                             <h3 className="font-semibold text-lg">{event.title}</h3>
-                            <Badge className={typeColors[event.type]}>
-                              {typeLabels[event.type]}
+                            <Badge className={typeColors[event.type] || "bg-primary"}>
+                              {typeLabels[event.type] || event.type}
                             </Badge>
                           </div>
-                          <Button variant="destructive" size="sm">
+                          <Button 
+                            variant="destructive" 
+                            size="sm"
+                            onClick={() => handleDeleteEvent(event.id)}
+                          >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                         <p className="text-sm text-muted-foreground mb-2">{event.description}</p>
                         <div className="flex flex-wrap gap-4 text-sm">
-                          <span>📅 {event.date}</span>
+                          <span>📅 {new Date(event.date).toLocaleDateString()}</span>
                           <span>🕒 {event.time}</span>
                           <span>📍 {event.location}</span>
-                          <span>👥 {event.vacancies}/{event.totalSlots} vagas</span>
+                          {/* Nota: Usamos maxVacancies da API */}
+                          <span>👥 {event.availableVacancies}/{event.maxVacancies} vagas</span>
                         </div>
                       </div>
                     ))}
@@ -366,45 +469,59 @@ const AdminDashboard = () => {
             </Card>
           </TabsContent>
 
+          {/* ABA INSCRIÇÕES */}
           <TabsContent value="enrollments">
             <Card>
               <CardHeader>
                 <CardTitle>Gerenciar Inscrições</CardTitle>
-                <CardDescription>Visualize e gerencie as inscrições nos eventos</CardDescription>
+                <CardDescription>Todas as inscrições ativas no sistema</CardDescription>
               </CardHeader>
               <CardContent>
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Nome</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Data de Inscrição</TableHead>
+                      <TableHead>Evento</TableHead>
+                      <TableHead>ID Usuário</TableHead>
+                      <TableHead>Status</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockEnrollments.map((enrollment) => (
-                      <TableRow key={enrollment.id}>
-                        <TableCell className="font-medium">{enrollment.userName}</TableCell>
-                        <TableCell>{enrollment.userEmail}</TableCell>
-                        <TableCell>{enrollment.enrolledAt}</TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => handleRemoveEnrollment(enrollment.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                    {enrollmentsList.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-muted-foreground">
+                          Nenhuma inscrição encontrada.
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : (
+                      enrollmentsList.map((enrollment) => (
+                        <TableRow key={enrollment.id}>
+                          <TableCell className="font-medium">{enrollment.eventName}</TableCell>
+                          <TableCell className="text-xs">{enrollment.userId}</TableCell>
+                          <TableCell>
+                             <Badge variant={enrollment.status === 'confirmed' ? 'default' : 'secondary'}>
+                                {enrollment.status}
+                             </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleRemoveEnrollment(enrollment.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
             </Card>
           </TabsContent>
 
+          {/* ABA AVALIAÇÕES */}
           <TabsContent value="ratings">
             <Card>
               <CardHeader>
@@ -413,29 +530,36 @@ const AdminDashboard = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {mockRatings.map((rating) => (
-                    <div key={rating.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="font-semibold">{rating.userName}</p>
-                          <div className="flex items-center gap-1 mt-1">
-                            {[...Array(5)].map((_, i) => (
-                              <Star
-                                key={i}
-                                className={`w-4 h-4 ${
-                                  i < rating.rating
-                                    ? "fill-yellow-400 text-yellow-400"
-                                    : "text-gray-300"
-                                }`}
-                              />
-                            ))}
+                  {ratingsList.length === 0 ? (
+                     <p className="text-center text-muted-foreground py-8">Nenhuma avaliação ainda.</p>
+                  ) : (
+                    ratingsList.map((rating) => (
+                      <div key={rating.id} className="border rounded-lg p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-semibold text-sm">Evento: {rating.eventName}</p>
+                            <p className="text-xs text-muted-foreground">User ID: {rating.userId}</p>
+                            <div className="flex items-center gap-1 mt-1">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`w-4 h-4 ${
+                                    i < rating.rating
+                                      ? "fill-yellow-400 text-yellow-400"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
                           </div>
+                          <span className="text-sm text-muted-foreground">
+                            {new Date(rating.createdAt).toLocaleDateString()}
+                          </span>
                         </div>
-                        <span className="text-sm text-muted-foreground">{rating.createdAt}</span>
+                        <p className="text-sm italic">"{rating.comment}"</p>
                       </div>
-                      <p className="text-sm">{rating.comment}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </div>
               </CardContent>
             </Card>

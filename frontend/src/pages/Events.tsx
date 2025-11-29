@@ -1,86 +1,45 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Navbar from "@/components/Navbar";
 import EventCard from "@/components/EventCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search } from "lucide-react";
-
-const mockEvents = [
-  {
-    id: 1,
-    title: "Oficina de React Avançado",
-    type: "workshop" as const,
-    date: "15 de Abril, 2025",
-    time: "14:00 - 17:00",
-    location: "Sala 201 - Bloco A",
-    vacancies: 12,
-    totalSlots: 30,
-    description: "Aprenda técnicas avançadas de React incluindo hooks customizados, otimização de performance e patterns modernos.",
-  },
-  {
-    id: 2,
-    title: "Palestra: Futuro da IA",
-    type: "palestra" as const,
-    date: "18 de Abril, 2025",
-    time: "19:00 - 21:00",
-    location: "Auditório Principal",
-    vacancies: 45,
-    totalSlots: 100,
-    description: "Uma visão sobre as tendências e impactos da Inteligência Artificial nos próximos anos.",
-  },
-  {
-    id: 3,
-    title: "Reunião de Planejamento Q2",
-    type: "reuniao" as const,
-    date: "20 de Abril, 2025",
-    time: "10:00 - 12:00",
-    location: "Sala de Reuniões 3",
-    vacancies: 0,
-    totalSlots: 15,
-    description: "Planejamento estratégico e definição de metas para o segundo trimestre.",
-  },
-  {
-    id: 4,
-    title: "Workshop de Design Thinking",
-    type: "workshop" as const,
-    date: "22 de Abril, 2025",
-    time: "13:00 - 16:00",
-    location: "Laboratório de Inovação",
-    vacancies: 8,
-    totalSlots: 20,
-    description: "Metodologia prática para resolver problemas complexos através do pensamento criativo.",
-  },
-  {
-    id: 5,
-    title: "Palestra: Carreira em Tech",
-    type: "palestra" as const,
-    date: "25 de Abril, 2025",
-    time: "18:00 - 20:00",
-    location: "Auditório 2",
-    vacancies: 30,
-    totalSlots: 80,
-    description: "Dicas e estratégias para construir uma carreira sólida na área de tecnologia.",
-  },
-  {
-    id: 6,
-    title: "Oficina de Git & GitHub",
-    type: "workshop" as const,
-    date: "28 de Abril, 2025",
-    time: "15:00 - 18:00",
-    location: "Lab de Computação 1",
-    vacancies: 15,
-    totalSlots: 25,
-    description: "Domine o versionamento de código e colaboração em projetos usando Git e GitHub.",
-  },
-];
+import { Search, Loader2 } from "lucide-react"; // Adicionei o Loader2
+import { eventAPI, Event } from "@/services/api"; // Importando nossa API
+import { toast } from "@/hooks/use-toast";
 
 const Events = () => {
+  const [events, setEvents] = useState<Event[]>([]); // Lista vazia inicial
+  const [isLoading, setIsLoading] = useState(true); // Começa carregando
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
-  const filteredEvents = mockEvents.filter((event) => {
+  // Busca os dados do Python ao abrir a página
+  useEffect(() => {
+    const fetchEvents = async () => {
+      try {
+        const data = await eventAPI.getAll();
+        setEvents(data);
+      } catch (error) {
+        console.error("Erro ao buscar eventos:", error);
+        toast({
+          variant: "destructive",
+          title: "Erro ao carregar",
+          description: "Não foi possível conectar ao servidor. Verifique se o backend está rodando.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEvents();
+  }, []);
+
+  const filteredEvents = events.filter((event) => {
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         event.description.toLowerCase().includes(searchTerm.toLowerCase());
+                          event.description.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Nota: O backend retorna 'oficina', o filtro original usava 'workshop'. 
+    // Ajuste conforme a necessidade do seu filtro visual.
     const matchesType = filterType === "all" || event.type === filterType;
     return matchesSearch && matchesType;
   });
@@ -113,25 +72,42 @@ const Events = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os tipos</SelectItem>
-              <SelectItem value="workshop">Oficinas</SelectItem>
+              {/* Ajuste: Mudei para 'oficina' para bater com o retorno da API */}
+              <SelectItem value="oficina">Oficinas</SelectItem>
               <SelectItem value="palestra">Palestras</SelectItem>
               <SelectItem value="reuniao">Reuniões</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredEvents.map((event, index) => (
-            <div key={event.id} style={{ animationDelay: `${index * 0.1}s` }}>
-              <EventCard {...event} />
-            </div>
-          ))}
-        </div>
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <Loader2 className="h-10 w-10 animate-spin text-primary" />
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredEvents.map((event, index) => (
+              <div key={event.id} style={{ animationDelay: `${index * 0.1}s` }}>
+                <EventCard 
+                  {...event}
+                  // TRADUÇÃO DE CAMPOS:
+                  // Usamos um cast específico aqui para evitar o 'any'.
+                  // Dizemos ao TS: "Se não for oficina (que vira workshop), com certeza é palestra ou reuniao".
+                  type={event.type === 'oficina' ? 'workshop' : (event.type as "palestra" | "reuniao")} 
+                  vacancies={event.availableVacancies}
+                  totalSlots={event.maxVacancies}
+                />
+              </div>
+            ))}
+          </div>
+        )}
 
-        {filteredEvents.length === 0 && (
+        {!isLoading && filteredEvents.length === 0 && (
           <div className="text-center py-12">
             <p className="text-muted-foreground text-lg">
-              Nenhum evento encontrado com os filtros selecionados.
+              {events.length === 0 
+                ? "Nenhum evento encontrado no banco de dados." 
+                : "Nenhum evento encontrado com os filtros selecionados."}
             </p>
           </div>
         )}

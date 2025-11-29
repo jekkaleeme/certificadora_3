@@ -6,33 +6,98 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Calendar, Mail, Lock, User } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { userAPI } from "@/services/api"; // Importamos nossa API
 
 const Auth = () => {
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  
+  // Estados para Login
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+
+  // Estados para Cadastro
+  const [signupName, setSignupName] = useState("");
+  const [signupEmail, setSignupEmail] = useState("");
+  const [signupPassword, setSignupPassword] = useState("");
+
+  // Estados para Reset de Senha
   const [isResetDialogOpen, setIsResetDialogOpen] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
 
+  // --- LÓGICA DE LOGIN ---
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement login logic
-    setTimeout(() => setIsLoading(false), 1000);
+
+    try {
+      // Chama o backend (Python)
+      await userAPI.login(loginEmail, loginPassword);
+      
+      toast({
+        title: "Login realizado!",
+        description: "Bem-vindo de volta.",
+      });
+
+      // Redireciona para a Home (ou Dashboard)
+      navigate("/"); 
+      
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Erro no login",
+        description: "Email ou senha incorretos. Tente novamente.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
+  // --- LÓGICA DE CADASTRO ---
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement signup logic
-    setTimeout(() => setIsLoading(false), 1000);
+
+    try {
+      // Prepara os dados do usuário (Padrão role: 'user')
+      await userAPI.register({
+        name: signupName,
+        email: signupEmail,
+        role: "user", 
+        // Você pode adicionar outros campos aqui se seu formulário tiver (age, phone, etc)
+      });
+
+      toast({
+        title: "Conta criada!",
+        description: "Faça login para continuar.",
+      });
+
+      // Limpa os campos e força a troca para a aba de login
+      setSignupName("");
+      setSignupEmail("");
+      setSignupPassword("");
+      // Opcional: setTab("login") se você controlar a tab via state
+      
+    } catch (error) {
+      console.error(error);
+      toast({
+        variant: "destructive",
+        title: "Erro ao cadastrar",
+        description: "Verifique se o email já está em uso ou tente mais tarde.",
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // RF25: Redefinição de senha
+  // RF25: Redefinição de senha (Mantido mock por enquanto, ou integre se tiver endpoint)
   const handlePasswordReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // TODO: Implement password reset logic with backend
+    // TODO: Chamar userAPI.forgotPassword(resetEmail) se existir no backend
     setTimeout(() => {
       setIsLoading(false);
       setIsResetDialogOpen(false);
@@ -67,6 +132,7 @@ const Auth = () => {
                 <TabsTrigger value="signup">Cadastrar</TabsTrigger>
               </TabsList>
 
+              {/* FORMULÁRIO DE LOGIN */}
               <TabsContent value="login">
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">
@@ -79,6 +145,8 @@ const Auth = () => {
                         placeholder="seu@email.com"
                         className="pl-10"
                         required
+                        value={loginEmail}
+                        onChange={(e) => setLoginEmail(e.target.value)}
                       />
                     </div>
                   </div>
@@ -92,6 +160,8 @@ const Auth = () => {
                         placeholder="••••••••"
                         className="pl-10"
                         required
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
                       />
                     </div>
                   </div>
@@ -139,6 +209,7 @@ const Auth = () => {
                 </form>
               </TabsContent>
 
+              {/* FORMULÁRIO DE CADASTRO */}
               <TabsContent value="signup">
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
@@ -151,6 +222,8 @@ const Auth = () => {
                         placeholder="Seu nome"
                         className="pl-10"
                         required
+                        value={signupName}
+                        onChange={(e) => setSignupName(e.target.value)}
                       />
                     </div>
                   </div>
@@ -164,6 +237,8 @@ const Auth = () => {
                         placeholder="seu@email.com"
                         className="pl-10"
                         required
+                        value={signupEmail}
+                        onChange={(e) => setSignupEmail(e.target.value)}
                       />
                     </div>
                   </div>
@@ -177,6 +252,8 @@ const Auth = () => {
                         placeholder="••••••••"
                         className="pl-10"
                         required
+                        value={signupPassword}
+                        onChange={(e) => setSignupPassword(e.target.value)}
                       />
                     </div>
                   </div>
