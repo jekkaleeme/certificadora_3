@@ -106,7 +106,7 @@ export const userAPI = {
     return response.data;
   },
 
-  // Adicionado para suportar o UserManagement.tsx
+  // Usado no Painel Administrativo
   getAll: async (): Promise<User[]> => {
     // Rota backend: GET /users/all
     const response = await api.get('/users/all');
@@ -120,8 +120,7 @@ export const userAPI = {
   },
 
   login: async (email: string, password: string): Promise<{ user: User; token: string }> => {
-    // Rota backend: POST /token
-    // O FastAPI OAuth2PasswordRequestForm exige Form Data (username, password)
+    // Rota backend: POST /token (OAuth2 form-data)
     const formData = new FormData();
     formData.append('username', email);
     formData.append('password', password);
@@ -132,13 +131,11 @@ export const userAPI = {
       },
     });
     
-    // O backend retorna { access_token: string, token_type: string }
     if (response.data.access_token) {
       localStorage.setItem('token', response.data.access_token);
     }
     
-    // Como o endpoint /token só retorna o token, buscamos o usuário manualmente logo depois
-    // para manter a compatibilidade com o que o front espera
+    // Busca usuário logo após login para retornar objeto completo
     const userResponse = await api.get('/users/me', {
       headers: { Authorization: `Bearer ${response.data.access_token}` }
     });
@@ -152,45 +149,48 @@ export const userAPI = {
 };
 
 export const enrollmentAPI = {
-  // ⚠️ ROTA FALTANDO NO BACKEND: Listar inscrições de um usuário
-  // Seu backend não tem GET /users/{id}/inscriptions ou GET /inscriptions/user/{id}
-  // Isso fará o UserDashboard quebrar ou vir vazio.
+  // Rota adicionada em users.py
   getByUser: async (userId: string): Promise<Enrollment[]> => {
-    console.warn("Backend sem rota para listar inscrições do usuário. Retornando vazio.");
-    // return []; // Descomente para evitar erro 404 até implementar no back
-    const response = await api.get(`/users/me/inscriptions`); // Tentativa
+    // O backend usa o token para identificar o usuário
+    const response = await api.get(`/users/me/inscriptions`);
     return response.data;
   },
 
-  // Rota backend: GET /events/{event_id}/inscriptions
+  // Rota em inscriptions.py
   getByEvent: async (eventId: string): Promise<Enrollment[]> => {
     const response = await api.get(`/events/${eventId}/inscriptions`);
     return response.data;
   },
 
-  // Rota backend: POST /events/{event_id}/inscribe
+  // Rota em inscriptions.py
   create: async (userId: string, eventId: string): Promise<Enrollment> => {
-    // O backend usa o usuário logado (token), então enviamos um corpo vazio ou dados extras se InscriptionCreate exigir
     const response = await api.post(`/events/${eventId}/inscribe`, {});
     return response.data;
   },
 
-  // ⚠️ ROTA FALTANDO NO BACKEND: Cancelar inscrição
+  // Rota adicionada em inscriptions.py
   cancel: async (enrollmentId: string): Promise<void> => {
-    console.warn("Backend sem rota para cancelar inscrição.");
-    // await api.delete(`/inscriptions/${enrollmentId}`);
+    await api.delete(`/inscriptions/${enrollmentId}`);
   }
 };
 
 export const ratingAPI = {
-  // ⚠️ ROTAS FALTANDO NO BACKEND: Sistema de avaliações não existe nos arquivos enviados.
-  
+  // Rota adicionada em ratings.py
   getByEvent: async (eventId: string): Promise<Rating[]> => {
-    console.warn("Backend sem rota de avaliações.");
-    return [];
+    const response = await api.get(`/ratings/event/${eventId}`);
+    return response.data;
   },
 
+  // Rota adicionada em ratings.py
   create: async (rating: Omit<Rating, "id" | "createdAt">): Promise<Rating> => {
-    throw new Error("Backend de avaliações não implementado.");
+    // Converte para snake_case esperado pelo Pydantic do backend
+    const payload = {
+      user_id: rating.userId,
+      event_id: rating.eventId,
+      rating: rating.rating,
+      comment: rating.comment
+    };
+    const response = await api.post('/ratings/', payload);
+    return response.data;
   }
 };

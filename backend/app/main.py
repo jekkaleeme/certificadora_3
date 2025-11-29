@@ -2,10 +2,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 from app.db.base import create_tables
+# Importe TODOS os modelos aqui para que o create_tables os reconheça
 from app.db.models import user
 from app.db.models import event
 from app.db.models import inscription
-
+from app.db.models import rating  # <--- ADICIONE ESTA LINHA
 from app.api.api import api_router 
 
 origins = [
@@ -17,6 +18,7 @@ origins = [
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("Servidor iniciando...")
+    # Cria as tabelas baseadas nos modelos importados acima
     await create_tables()
     print("Tabelas criadas com sucesso (se não existiam).")
     yield
