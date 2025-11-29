@@ -1,12 +1,17 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List, Optional
 
 from app.db.base import get_db
 from app.db.models.user import User
 from app.db.models.event import EventType
-from app.schemas.event import EventCreate, EventRead
+from app.schemas.event import EventCreate, EventRead, EventUpdate
 from app.services import event_service
+from app.api.deps import (
+    get_current_organizer_user, 
+    get_current_user_optional,
+    get_current_user
+)
 from app.api.deps import get_current_organizer_user, get_current_user_optional
 
 router = APIRouter()
@@ -67,3 +72,54 @@ async def get_all_events(
         db=db, user=current_user, event_type=event_type, title=title
     )
     return events
+
+@router.put(
+    "/events/{event_id}",
+    response_model=EventRead
+)
+async def update_existing_event(
+    event_id: int,
+    event_in: EventUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user) 
+):
+    """
+    Atualiza um evento.
+    Acessível apenas para o Criador do evento ou Administradores.
+    """
+    updated_event = await event_service.update_event(
+        db=db, 
+        event_id=event_id, 
+        event_in=event_in, 
+        user=current_user
+    )
+    return updated_event
+
+@router.delete(
+    "/events/{event_id}",
+    status_code=status.HTTP_204_NO_CONTENT
+)
+async def delete_existing_event(
+    event_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    """
+    Deleta um evento.
+    Acessível apenas para o Criador do evento ou Administradores.
+    """
+    await event_service.delete_event(
+        db=db, event_id=event_id, user=current_user
+    )
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+@router.get("/dashboard/stats")
+async def get_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_organizer_user)
+):
+    """
+    Retorna estatísticas gerais para o organizador logado.
+    """
+    stats = await event_service.get_dashboard_stats(db, current_user.id)
+    return stats

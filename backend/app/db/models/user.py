@@ -1,6 +1,7 @@
 import enum
 from sqlalchemy import Column, Integer, String, Enum
-from app.db.base import Base 
+from app.db.base import Base
+from sqlalchemy.orm import relationship 
 
 class UserRole(str, enum.Enum):
     participant = "participant"
@@ -17,3 +18,9 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     
     role = Column(Enum(UserRole), nullable=False, default=UserRole.participant)
+
+    inscriptions = relationship(
+        "Inscription", 
+        back_populates="user", 
+        cascade="all, delete-orphan"
+    )

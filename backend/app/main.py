@@ -3,7 +3,7 @@ from contextlib import asynccontextmanager
 from app.db.base import create_tables
 from app.db.models import user
 from app.db.models import event
-
+from app.db.models import inscription
 from app.api.api import api_router 
 
 @asynccontextmanager

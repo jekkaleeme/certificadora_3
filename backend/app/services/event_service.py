@@ -1,14 +1,15 @@
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy.sql import or_, and_
+from sqlalchemy.sql import or_, and_, func
 from fastapi import HTTPException, status
 from app.db.models.event import Event, EventMaterial, EventType
 from app.db.models.user import User
-from app.schemas.event import EventCreate
-from sqlalchemy.orm import joinedload
+from app.schemas.event import EventCreate, EventUpdate
+from sqlalchemy.orm import joinedload, selectinload
 from typing import List, Optional
 from app.db.models.user import UserRole
+from app.db.models.inscription import Inscription
 
 async def check_conflict(
     db: AsyncSession, 
@@ -98,7 +99,10 @@ async def get_events(
     """
     Busca todos os eventos com filtros, aplicando regras de visibilidade.
     """
-    query = select(Event).options(joinedload(Event.materials))
+    query = select(Event).options(
+        joinedload(Event.materials), 
+        selectinload(Event.inscriptions)
+    )
 
     if not user or user.role == UserRole.participant:
         query = query.where(Event.is_public == True)
@@ -124,7 +128,10 @@ async def get_event_by_id(
     query = (
         select(Event)
         .where(Event.id == event_id)
-        .options(joinedload(Event.materials))
+        .options(
+            joinedload(Event.materials),
+            selectinload(Event.inscriptions)
+        )
     )
 
     result = await db.execute(query)
@@ -144,3 +151,86 @@ async def get_event_by_id(
             )
 
     return event
+
+async def update_event(
+    db: AsyncSession, 
+    event_id: int, 
+    event_in: EventUpdate,
+    user: User
+) -> Event:
+    """
+    Atualiza um evento.
+    """
+    db_event = await db.get(Event, event_id)
+    
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
+
+    if db_event.creator_id != user.id and user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Sem permissão para editar")
+
+    update_data = event_in.model_dump(exclude_unset=True)
+
+    await check_conflict(
+        db,
+        start=update_data.get("start_time", db_event.start_time),
+        end=update_data.get("end_time", db_event.end_time),
+        location=update_data.get("location", db_event.location),
+        host=update_data.get("host", db_event.host),
+        event_id_to_ignore=event_id
+    )
+
+    for key, value in update_data.items():
+        setattr(db_event, key, value)
+        
+    await db.commit()
+
+    query = (
+        select(Event)
+        .where(Event.id == event_id)
+        .options(
+            joinedload(Event.materials),
+            selectinload(Event.inscriptions)
+        )
+    )
+    result = await db.execute(query)
+    return result.scalars().first()
+
+async def delete_event(
+    db: AsyncSession, event_id: int, user: User
+):
+    """
+    Deleta um evento.
+    """
+    db_event = await db.get(Event, event_id)
+    
+    if not db_event:
+        raise HTTPException(status_code=404, detail="Evento não encontrado")
+        
+    if db_event.creator_id != user.id and user.role != UserRole.admin:
+        raise HTTPException(status_code=403, detail="Sem permissão para deletar")
+        
+    await db.delete(db_event)
+    await db.commit()
+    return
+
+async def get_dashboard_stats(db: AsyncSession, user_id: int):
+    """
+    Retorna estatísticas gerais para o dashboard do organizador (RF26).
+    """
+    query_events = select(func.count(Event.id)).where(Event.creator_id == user_id)
+    result_events = await db.execute(query_events)
+    total_events = result_events.scalar() or 0
+
+    query_inscriptions = (
+        select(func.count(Inscription.id))
+        .join(Event)
+        .where(Event.creator_id == user_id)
+    )
+    result_inscriptions = await db.execute(query_inscriptions)
+    total_inscriptions = result_inscriptions.scalar() or 0
+
+    return {
+        "total_events": total_events,
+        "total_inscriptions": total_inscriptions
+    }

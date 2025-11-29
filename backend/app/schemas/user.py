@@ -16,4 +16,11 @@ class UserRead(UserBase):
     role: UserRole
 
     class Config:
-        from_attributes = True 
+        from_attributes = True
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    phone: Optional[str] = None
+    password: Optional[str] = None
+    role: Optional[UserRole] = None

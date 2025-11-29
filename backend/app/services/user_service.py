@@ -2,9 +2,10 @@ from typing import List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from app.db.models.user import User
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.core.security import get_password_hash
 from fastapi import HTTPException, status
+from sqlalchemy.orm import selectinload
 
 async def create_user(db: AsyncSession, user_in: UserCreate) -> User:
     """
@@ -47,3 +48,40 @@ async def get_all_users(db: AsyncSession) -> List[User]:
     query = select(User)
     result = await db.execute(query)
     return result.scalars().all()
+
+async def update_user(
+    db: AsyncSession, user_id: int, user_in: UserUpdate
+) -> User:
+    """Atualiza dados do usuário."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
+        )
+
+    update_data = user_in.model_dump(exclude_unset=True)
+
+    if "password" in update_data:
+        hashed_password = get_password_hash(update_data["password"])
+        del update_data["password"]
+        user.hashed_password = hashed_password
+
+    for key, value in update_data.items():
+        setattr(user, key, value)
+
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+async def delete_user(db: AsyncSession, user_id: int):
+    """Deleta um usuário (e suas inscrições via cascade)."""
+    user = await db.get(User, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Usuário não encontrado"
+        )
+        
+    await db.delete(user)
+    await db.commit()
+    return

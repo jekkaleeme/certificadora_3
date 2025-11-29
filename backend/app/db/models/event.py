@@ -31,6 +31,12 @@ class Event(Base):
 
     materials = relationship("EventMaterial", back_populates="event", cascade="all, delete-orphan")
 
+    inscriptions = relationship("Inscription", back_populates="event", cascade="all, delete-orphan")
+
+    @property
+    def inscriptions_count(self):
+        return len(self.inscriptions)
+
 class EventMaterial(Base):
     __tablename__ = "event_materials"
 

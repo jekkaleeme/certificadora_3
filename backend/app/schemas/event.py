@@ -29,10 +29,22 @@ class EventBase(BaseModel):
 class EventCreate(EventBase):
     materials: List[EventMaterialCreate] = []
 
+class EventUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    event_type: Optional[EventType] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    location: Optional[str] = None
+    host: Optional[str] = None
+    max_vacancies: Optional[int] = None
+    is_public: Optional[bool] = None
+
 class EventRead(EventBase):
     id: int
     creator_id: int
-    materials: List[EventMaterialRead] = [] 
+    materials: List[EventMaterialRead] = []
+    inscriptions_count: int = 0  
 
     class Config:
         from_attributes = True
