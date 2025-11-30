@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { Calendar, Mail, Lock, User } from "lucide-react";
+import { Calendar, Mail, Lock, User, Phone } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { userAPI } from "@/services/api"; // Importamos nossa API
@@ -21,6 +21,7 @@ const Auth = () => {
   // Estados para Cadastro
   const [signupName, setSignupName] = useState("");
   const [signupEmail, setSignupEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
 
   // Estados para Reset de Senha
@@ -66,8 +67,9 @@ const Auth = () => {
       await userAPI.register({
         name: signupName,
         email: signupEmail,
-        role: "user", 
-        // Você pode adicionar outros campos aqui se seu formulário tiver (age, phone, etc)
+        phone: phone,
+        password: signupPassword,
+        role: 'participant'
       });
 
       toast({
@@ -78,8 +80,8 @@ const Auth = () => {
       // Limpa os campos e força a troca para a aba de login
       setSignupName("");
       setSignupEmail("");
+      setPhone("");
       setSignupPassword("");
-      // Opcional: setTab("login") se você controlar a tab via state
       
     } catch (error) {
       console.error(error);
@@ -239,6 +241,21 @@ const Auth = () => {
                         required
                         value={signupEmail}
                         onChange={(e) => setSignupEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="phone">Telefone</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="phone"
+                        type="tel"
+                        placeholder="41999999999"
+                        className="pl-10"
+                        required
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
                       />
                     </div>
                   </div>

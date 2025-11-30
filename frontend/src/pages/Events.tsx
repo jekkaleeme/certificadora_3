@@ -3,17 +3,24 @@ import Navbar from "@/components/Navbar";
 import EventCard from "@/components/EventCard";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Loader2 } from "lucide-react"; // Adicionei o Loader2
-import { eventAPI, Event } from "@/services/api"; // Importando nossa API
+import { Search, Loader2 } from "lucide-react";
+import { eventAPI, Event } from "@/services/api";
 import { toast } from "@/hooks/use-toast";
 
+// Interface auxiliar para o TS entender os campos do Python
+interface BackendEvent extends Event {
+  event_type?: string;
+  max_vacancies?: number;
+  inscriptions_count?: number;
+  availableVacancies: number;
+}
+
 const Events = () => {
-  const [events, setEvents] = useState<Event[]>([]); // Lista vazia inicial
-  const [isLoading, setIsLoading] = useState(true); // Começa carregando
+  const [events, setEvents] = useState<Event[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterType, setFilterType] = useState("all");
 
-  // Busca os dados do Python ao abrir a página
   useEffect(() => {
     const fetchEvents = async () => {
       try {
@@ -24,7 +31,7 @@ const Events = () => {
         toast({
           variant: "destructive",
           title: "Erro ao carregar",
-          description: "Não foi possível conectar ao servidor. Verifique se o backend está rodando.",
+          description: "Não foi possível conectar ao servidor.",
         });
       } finally {
         setIsLoading(false);
@@ -35,12 +42,28 @@ const Events = () => {
   }, []);
 
   const filteredEvents = events.filter((event) => {
+    // 1. ACESSO SEGURO AO TIPO (CORREÇÃO AQUI)
+    // Convertemos para acessar a propriedade 'event_type' que vem do Python
+    const rawEvent = event as unknown as BackendEvent;
+    const realType = rawEvent.event_type || event.type; 
+
+    // 2. Filtro de Busca (Título/Descrição)
     const matchesSearch = event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                           event.description.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Nota: O backend retorna 'oficina', o filtro original usava 'workshop'. 
-    // Ajuste conforme a necessidade do seu filtro visual.
-    const matchesType = filterType === "all" || event.type === filterType;
+    // 3. Filtro de Tipo (Lógica ajustada)
+    let matchesType = false;
+
+    if (filterType === "all") {
+      matchesType = true;
+    } else if (filterType === "reuniao") {
+      // Backend manda 'reuniao_interna', filtro manda 'reuniao'
+      matchesType = realType === 'reuniao_interna' || realType === 'reuniao';
+    } else {
+      // Outros tipos (oficina, palestra) devem bater exato
+      matchesType = realType === filterType;
+    }
+
     return matchesSearch && matchesType;
   });
 
@@ -72,7 +95,6 @@ const Events = () => {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os tipos</SelectItem>
-              {/* Ajuste: Mudei para 'oficina' para bater com o retorno da API */}
               <SelectItem value="oficina">Oficinas</SelectItem>
               <SelectItem value="palestra">Palestras</SelectItem>
               <SelectItem value="reuniao">Reuniões</SelectItem>
@@ -86,19 +108,37 @@ const Events = () => {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredEvents.map((event, index) => (
-              <div key={event.id} style={{ animationDelay: `${index * 0.1}s` }}>
-                <EventCard 
-                  {...event}
-                  // TRADUÇÃO DE CAMPOS:
-                  // Usamos um cast específico aqui para evitar o 'any'.
-                  // Dizemos ao TS: "Se não for oficina (que vira workshop), com certeza é palestra ou reuniao".
-                  type={event.type === 'oficina' ? 'workshop' : (event.type as "palestra" | "reuniao")} 
-                  vacancies={event.availableVacancies}
-                  totalSlots={event.maxVacancies}
-                />
-              </div>
-            ))}
+            {filteredEvents.map((event, index) => {
+              
+              // Preparação de dados para o Card
+              const backendEvent = event as unknown as BackendEvent;
+              
+              const totalVagas = backendEvent.max_vacancies || 0;
+              const inscritos = backendEvent.inscriptions_count || 0;
+              const vagasDisponiveis = totalVagas - inscritos;
+
+              const rawType = backendEvent.event_type || event.type;
+              let displayType: "workshop" | "palestra" | "reuniao" = "palestra";
+
+              if (rawType === 'oficina') displayType = 'workshop';
+              else if (rawType === 'palestra') displayType = 'palestra';
+              else if (rawType === 'reuniao' || rawType === 'reuniao_interna') displayType = 'reuniao';
+
+              return (
+                <div key={event.id} style={{ animationDelay: `${index * 0.1}s` }}>
+                  <EventCard 
+                    {...event}
+                    type={displayType}
+                    vacancies={vagasDisponiveis}
+                    totalSlots={totalVagas}
+                    // Passamos também os dados crus para o Card se virar (ele já está inteligente)
+                    event_type={rawType}
+                    max_vacancies={totalVagas}
+                    inscriptions_count={inscritos}
+                  />
+                </div>
+              );
+            })}
           </div>
         )}
 

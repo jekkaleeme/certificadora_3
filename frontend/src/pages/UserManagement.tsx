@@ -11,12 +11,13 @@ import { Badge } from "@/components/ui/badge";
 import { UserPlus, Pencil, Trash2, Download, Search, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { api, userAPI, User } from "@/services/api";
+import * as XLSX from 'xlsx';
 
 // Interface local para o formulário
 interface UserFormData {
   name: string;
   email: string;
-  role: "admin" | "user";
+  role: "admin" | "participant";
   age: string;
   phone: string;
   school: string;
@@ -35,7 +36,7 @@ const UserManagement = () => {
   const [formData, setFormData] = useState<UserFormData>({
     name: "",
     email: "",
-    role: "user",
+    role: "participant",
     age: "",
     phone: "",
     school: "",
@@ -77,7 +78,7 @@ const UserManagement = () => {
     setFormData({
       name: "",
       email: "",
-      role: "user",
+      role: "participant",
       age: "",
       phone: "",
       school: "",
@@ -161,28 +162,34 @@ const UserManagement = () => {
   };
 
   const handleExportUsers = () => {
-    const csvContent = [
-      ["Nome", "Email", "Tipo", "Idade", "Telefone", "Escola", "Data de Cadastro"].join(","),
-      ...filteredUsers.map(u => 
-        [
-          `"${u.name}"`, 
-          u.email, 
-          u.role === "admin" ? "Administrador" : "Usuário", 
-          u.age || "", 
-          u.phone || "", 
-          `"${u.school || ""}"`, 
-          u.createdAt || ""
-        ].join(",")
-      )
-    ].join("\n");
+    // 1. Prepara os dados
+    const data = filteredUsers.map(u => ({
+      Nome: u.name,
+      Email: u.email,
+      Tipo: u.role === "admin" ? "Administrador" : "Usuário",
+      Telefone: u.phone || ""
+    }));
+
+    // 2. Cria a Planilha (Worksheet)
+    const worksheet = XLSX.utils.json_to_sheet(data);
+
+    // 3. Define a LARGURA das colunas (Aqui está a mágica!)
+    // wch = width chars (largura em caracteres)
+    worksheet['!cols'] = [
+      { wch: 30 }, // Coluna A (Nome) - 30 caracteres
+      { wch: 35 }, // Coluna B (Email) - 35 caracteres
+      { wch: 15 }, // Coluna C (Tipo) - 15 caracteres
+      { wch: 20 }  // Coluna D (Telefone) - 20 caracteres
+    ];
+
+    // 4. Cria o Arquivo (Workbook) e adiciona a planilha
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Usuários");
+
+    // 5. Baixa o arquivo .xlsx
+    XLSX.writeFile(workbook, `usuarios_${new Date().toISOString().split('T')[0]}.xlsx`);
     
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `usuarios_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    
-    toast({ title: "Exportação concluída!", description: "Arquivo CSV gerado." });
+    toast({ title: "Exportação concluída!", description: "Arquivo Excel (.xlsx) gerado." });
   };
 
   return (
@@ -209,7 +216,7 @@ const UserManagement = () => {
               <div className="flex gap-2">
                 <Button onClick={handleExportUsers} variant="outline" disabled={isLoading}>
                   <Download className="w-4 h-4 mr-2" />
-                  Exportar CSV
+                  Exportar
                 </Button>
                 <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                   <DialogTrigger asChild>
@@ -267,49 +274,28 @@ const UserManagement = () => {
                           <Label htmlFor="role">Tipo de Acesso *</Label>
                           <Select 
                             value={formData.role} 
-                            onValueChange={(value: "admin" | "user") => setFormData({ ...formData, role: value })}
+                            onValueChange={(value: "admin" | "participant") => setFormData({ ...formData, role: value })}
                           >
                             <SelectTrigger>
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="user">Usuário</SelectItem>
+                              <SelectItem value="participant">Usuário</SelectItem>
                               <SelectItem value="admin">Administrador</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
 
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="space-y-2">
-                            <Label htmlFor="age">Idade</Label>
-                            <Input
-                              id="age"
-                              type="number"
-                              min="10"
-                              max="100"
-                              value={formData.age}
-                              onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-                            />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="phone">Telefone</Label>
-                            <Input
-                              id="phone"
-                              type="tel"
-                              value={formData.phone}
-                              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                            />
-                          </div>
-                        </div>
-                        
                         <div className="space-y-2">
-                          <Label htmlFor="school">Escola/Instituição</Label>
-                          <Input
-                            id="school"
-                            value={formData.school}
-                            onChange={(e) => setFormData({ ...formData, school: e.target.value })}
-                          />
+                           <Label htmlFor="phone">Telefone</Label>
+                           <Input
+                             id="phone"
+                             type="tel"
+                             value={formData.phone}
+                             onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                           />
                         </div>
+                         
                       </div>
                       <DialogFooter>
                         <Button type="submit" disabled={isSaving}>
@@ -341,7 +327,7 @@ const UserManagement = () => {
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
                   <SelectItem value="admin">Administradores</SelectItem>
-                  <SelectItem value="user">Usuários</SelectItem>
+                  <SelectItem value="participant">Usuários</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -352,10 +338,7 @@ const UserManagement = () => {
                   <TableRow>
                     <TableHead>Nome</TableHead>
                     <TableHead>Email</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead>Escola</TableHead>
-                    <TableHead>Data de Cadastro</TableHead>
-                    <TableHead className="text-right">Ações</TableHead>
+                    <TableHead>Tipo de Acesso</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -382,10 +365,6 @@ const UserManagement = () => {
                           <Badge variant={user.role === "admin" ? "default" : "secondary"}>
                             {user.role === "admin" ? "Administrador" : "Usuário"}
                           </Badge>
-                        </TableCell>
-                        <TableCell>{user.school || "-"}</TableCell>
-                        <TableCell>
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString() : "-"}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
