@@ -54,6 +54,25 @@ Este sistema foi projetado para **centralizar e simplificar a gestão de eventos
 
 ---
 
+## 📥 Como Baixar o Projeto
+
+Para começar, você precisa clonar este repositório em sua máquina local. Abra seu terminal e escolha uma das opções abaixo:
+
+**Via HTTPS (Recomendado):**
+```bash
+git clone [https://github.com/jekkaleeme/certificadora_3.git](https://github.com/jekkaleeme/certificadora_3.git)
+```
+Via SSH:
+
+```bash
+git clone git@github.com:jekkaleeme/certificadora_3.git
+```
+Após clonar, entre na pasta do projeto:
+
+```bash
+cd certificadora_3
+```
+
 ## 🧪 Roteiro de Testes (Passo a Passo)
 
 Para validar todas as funcionalidades do sistema, sugerimos o seguinte fluxo:
@@ -97,5 +116,5 @@ Toda a lógica de negócios e conexão com o banco. 📄 [Guia Detalhado: Como c
 2. Frontend (Interface React)
 A interface visual onde os usuários interagem. 📄 [Guia Detalhado: Como configurar e rodar o Frontend](frontend/HOW_TO_EXECUTE.md)
 
-3. Link do video de instalação das ferramentas: [YOUTUBE](https://)
+3. Link do video de instalação das ferramentas: [DRIVE](https://)
 
