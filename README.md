@@ -95,10 +95,10 @@ Como o banco de dados é iniciado vazio, **não existem contas padrão**. Você 
 O projeto é dividido em dois módulos principais. Para rodar o sistema completo, você precisará de dois terminais abertos.
 
 1. Backend (API Python)
-Toda a lógica de negócios e conexão com o banco. 📄 Guia Detalhado: Como configurar e rodar o Backend <a href="https://github.com/jekkaleeme/certificadora_3/blob/main/backend/HOW_TO_EXECUTE.md>
+Toda a lógica de negócios e conexão com o banco. 📄 [Guia Detalhado: Como configurar e rodar o Backend](backend/HOW_TO_EXECUTE.md)
 
 2. Frontend (Interface React)
-A interface visual onde os usuários interagem. 📄 Guia Detalhado: Como instalar e rodar o Frontend <a href="https://github.com/jekkaleeme/certificadora_3/blob/main/frontend/HOW_TO_EXECUTE.md>
+A interface visual onde os usuários interagem. 📄 [Guia Detalhado: Como configurar e rodar o Frontend](frontend/HOW_TO_EXECUTE.md)
 
 🗄️ Configuração Rápida do Banco de Dados
 Instale o PostgreSQL e garanta que o serviço está ativo.
