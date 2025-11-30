@@ -100,11 +100,3 @@ Toda a lógica de negócios e conexão com o banco. 📄 [Guia Detalhado: Como c
 2. Frontend (Interface React)
 A interface visual onde os usuários interagem. 📄 [Guia Detalhado: Como configurar e rodar o Frontend](frontend/HOW_TO_EXECUTE.md)
 
-🗄️ Configuração Rápida do Banco de Dados
-Instale o PostgreSQL e garanta que o serviço está ativo.
-
-Crie um banco de dados chamado certificadora.
-
-No arquivo .env do backend, configure sua string de conexão: DATABASE_URL=postgresql+asyncpg://seu_usuario:sua_senha@localhost:5432/certificadora
-
-Ao iniciar o backend, as tabelas serão criadas automaticamente.
