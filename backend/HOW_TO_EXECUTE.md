@@ -98,29 +98,53 @@ Antes de configurar o projeto, garanta que você tenha as seguintes ferramentas 
     ```
 2.  O servidor estará rodando e acessível em `http://127.0.0.1:8000`.
 
+### Passo 6: Criar o Primeiro Administrador (Bootstrapping)
+
+Por padrão, qualquer usuário que se cadastrar pelo Frontend será criado com o perfil `participant` (sem poderes administrativos).
+
+Para acessar o painel administrativo e gerenciar o sistema, você precisa criar o **primeiro** usuário Administrador manualmente.
+
+**Opção A: Via Swagger (Recomendado)**
+O endpoint de cadastro da API (`POST /users`) permite definir o campo `role`, diferente do formulário do site.
+
+1.  Acesse a documentação interativa: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+2.  Vá até o endpoint **`POST /users`**.
+3.  Clique em **Try it out** e use o seguinte JSON:
+    ```json
+    {
+      "name": "Super Admin",
+      "email": "admin@sistema.com",
+      "password": "senhaforte123",
+      "role": "admin", 
+      "phone": "11999999999"
+    }
+    ```
+4.  Clique em **Execute**.
+5.  Agora você pode fazer login com este email e senha no Frontend e terá acesso total.
+
+**Opção B: Via Banco de Dados (pgAdmin)**
+Se você já criou um usuário pelo site (ex: "Fulano") e ele ficou como participante, você pode promovê-lo diretamente no banco de dados.
+
+1.  Abra o **pgAdmin 4** e conecte-se ao banco `eventos_db`.
+2.  Clique com o botão direito no banco e selecione **Query Tool**.
+3.  Execute o seguinte comando SQL (substituindo pelo email do usuário):
+    ```sql
+    UPDATE users SET role = 'admin' WHERE email = 'seu_email_aqui@exemplo.com';
+    ```
+
 ## 3. Como Testar a API
 
 A forma mais fácil de testar todos os endpoints é usando a documentação interativa (Swagger UI) gerada automaticamente.
 
 1.  Acesse: **[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)**
 2.  **Crie um Usuário (Admin):**
-    * Vá até `POST /v1/users`.
-    * Clique "Try it out" e use este JSON:
-        ```json
-        {
-          "email": "admin@exemplo.com",
-          "name": "Admin do Sistema",
-          "password": "senhaforte123",
-          "role": "admin"
-        }
-        ```
-    * Execute. Você deve receber um `Code 201`.
+    * Siga o passo 6 acima para criar seu usuário admin.
 3.  **Faça Login (Obtenha um Token):**
     * Clique no botão verde **"Authorize"** no topo da página.
-    * Preencha os campos `username` ("admin@exemplo.com") e `password` ("senhaforte123").
+    * Preencha os campos `username` ("admin@sistema.com") e `password` ("senhaforte123").
     * Clique em "Authorize" e "Close". O cadeado estará fechado.
 4.  **Teste um Endpoint Protegido (Ex: Criar Evento):**
-    * Agora que está logado, vá em `POST /v1/events`.
+    * Agora que está logado, vá em `POST /events`.
     * Clique "Try it out" e use o JSON abaixo para criar um evento de teste:
         ```json
         {
