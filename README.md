@@ -31,13 +31,11 @@ Este sistema foi projetado para **centralizar e simplificar a gestão de eventos
 * **Catálogo Interativo:** Navegue por eventos com filtros dinâmicos (Tipo, Data, Vagas).
 * **Autenticação JWT:** Login seguro e cadastro rápido para novos usuários.
 * **Meu Painel:** Área exclusiva para o participante gerenciar suas inscrições e ver histórico.
-* **Sistema de Avaliação:** Feedback pós-evento com notas (estrelas) e comentários.
 
 ### 🛡️ Área Administrativa (Admin)
 * **CRUD de Eventos:** Criação completa com definição de vagas, local, horários e materiais.
 * **Gestão de Usuários:** Controle de acesso, edição de perfis e elevação de privilégios.
 * **Monitoramento de Inscrições:** Visualização em tempo real de quem vai participar.
-* **Dashboard Estatístico:** Gráficos intuitivos sobre adesão, tipos de eventos mais procurados e satisfação.
 * **Relatórios Exportáveis:** Geração de dados em CSV/TXT para análise externa.
 
 ---
@@ -73,8 +71,7 @@ Para validar todas as funcionalidades do sistema, sugerimos o seguinte fluxo:
    * *Nota:* O usuário criado inicialmente não tem permissão de Admin. Siga o guia abaixo ("Contas de Acesso") para liberar esse acesso.
 
 5. **Gestão Completa (Como Admin):**
-   * Crie um novo evento na aba *"Criar Evento"*.
-   * Verifique os gráficos na aba *"Estatísticas"*.
+   * Crie um novo evento na aba *"Criar Evento"*..
    * Gerencie outros usuários na aba *"Usuários"*.
 
 ---
@@ -99,4 +96,6 @@ Toda a lógica de negócios e conexão com o banco. 📄 [Guia Detalhado: Como c
 
 2. Frontend (Interface React)
 A interface visual onde os usuários interagem. 📄 [Guia Detalhado: Como configurar e rodar o Frontend](frontend/HOW_TO_EXECUTE.md)
+
+3. Link do video de instalação das ferramentas: [YOUTUBE](https://)
 
