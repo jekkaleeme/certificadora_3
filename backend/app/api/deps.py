@@ -12,9 +12,9 @@ from app.schemas.token import TokenData
 from app.services import user_service
 from app.db.models.user import UserRole
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/v1/token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/token")
 
-oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/v1/token", auto_error=False)
+oauth2_scheme_optional = OAuth2PasswordBearer(tokenUrl="/token", auto_error=False)
 
 async def get_current_user(
     token: str = Depends(oauth2_scheme), 

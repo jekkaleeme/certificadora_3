@@ -83,7 +83,8 @@ async def create_event(
     query = (
         select(Event)
         .where(Event.id == new_event.id)
-        .options(joinedload(Event.materials))
+        .options(joinedload(Event.materials),
+                 selectinload(Event.inscriptions))
     )
     result = await db.execute(query)
     created_event = result.scalars().first()

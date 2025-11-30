@@ -3,7 +3,7 @@ from app.api.endpoints import users
 from app.api.endpoints import auth
 from app.api.endpoints import events
 from app.api.endpoints import inscriptions
-from app.api.endpoints import ratings
+from app.api.endpoints import rating
 
 api_router = APIRouter()
 
@@ -20,4 +20,4 @@ api_router.include_router(events.router, tags=["Events"])
 api_router.include_router(inscriptions.router, tags=["Inscriptions"])
 
 # Rotas de Avaliações (NOVO - Adicionamos o prefixo /ratings aqui pois no arquivo é /)
-api_router.include_router(ratings.router, prefix="/ratings", tags=["Ratings"])
+api_router.include_router(rating.router, prefix="/ratings", tags=["Ratings"])
