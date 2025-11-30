@@ -1,59 +1,102 @@
----
-# CERTIFICADORA 3
+# 📅 Sistema de Gerenciamento de Eventos - Meninas Digitais
 
----
-# 📅 Sistema de Gerenciamento de Eventos  
-
-![Status](https://img.shields.io/badge/status-em%20desenvolvimento-yellow)  
-![Versão](https://img.shields.io/badge/vers%C3%A3o-1.0-blue)  
-![License](https://img.shields.io/badge/license-MIT-green)  
-
-Sistema para **gerenciar eventos** (oficinas, palestras e reuniões internas), permitindo controle de usuários, inscrições, permissões de acesso e acompanhamento de estatísticas.  
+> Uma plataforma completa para gestão acadêmica e corporativa de eventos, desenvolvida com tecnologias modernas para garantir eficiência e escalabilidade.
 
 ---
 
-## 📌 Índice
-1. [✨ Funcionalidades](#-funcionalidades)  
-2. [🛠️ Tecnologias Utilizadas](#️-tecnologias-utilizadas)  
-3. [🚀 Como Executar](#-como-executar)
+## 👥 Equipe de Desenvolvimento
 
-
----
-
-## ✨ Funcionalidades
-
-- 🔑 Login e autenticação de usuários.  
-- 🧑‍🤝‍🧑 Gerenciamento de níveis de acesso (administrador, organizador, participante).  
-- 📌 Cadastro, edição e exclusão de eventos.  
-- 📊 Definição de número máximo de vagas e controle de inscrições.  
-- 📝 Inscrição de visitantes em eventos públicos com coleta de dados básicos.  
-- 📈 Estatísticas e relatórios de eventos e participantes.  
-- 📂 Exportação de listas e relatórios em PDF ou Excel.  
-- 📅 Agenda de eventos futuros e passados.  
-- 🔒 Restrições para reuniões internas visíveis apenas a usuários autenticados.  
-- 📎 Adição de materiais complementares (anexos, links).  
+| Desenvolvedor | Função | 
+| ----- | ----- | 
+| **Matheus** |  Frontend & UX/UI | 
+| **Rafael** | Backend Specialist | 
+| **Jessica** | Frontend & UX/UI | 
+| **Leonardo** | Database| 
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
-Sugestão para desenvolvimento:  
-- **Backend:**  Python (Fast API)
-- **Frontend:**  React, Tailwind e Ts
-- **Banco de Dados:** PostgreSQL 
-- **Autenticação:** 
-- **Exportação de Relatórios:**  
+## 🎯 Objetivo do Sistema
+
+Este sistema foi projetado para **centralizar e simplificar a gestão de eventos acadêmicos e corporativos** (como oficinas, palestras e reuniões). Ele cobre todo o ciclo de vida de um evento, oferecendo ferramentas para:
+
+* **Organizadores:** Criar eventos, gerenciar inscrições e analisar dados.
+* **Participantes:** Inscrever-se facilmente, acompanhar sua agenda e emitir feedback.
+* **Administradores:** Ter controle total sobre usuários e conteúdo da plataforma.
 
 ---
 
-## 🚀 Como Executar
+## ✨ Funcionalidades Principais
 
-```bash
-# Clone o repositório
-git clone https://github.com/jekkaleeme/certificadora_3
+### 🔓 Área Pública & Participante
+* **Catálogo Interativo:** Navegue por eventos com filtros dinâmicos (Tipo, Data, Vagas).
+* **Autenticação JWT:** Login seguro e cadastro rápido para novos usuários.
+* **Meu Painel:** Área exclusiva para o participante gerenciar suas inscrições e ver histórico.
+* **Sistema de Avaliação:** Feedback pós-evento com notas (estrelas) e comentários.
 
-# Acesse a pasta do projeto
-cd certificadora_3
+### 🛡️ Área Administrativa (Admin)
+* **CRUD de Eventos:** Criação completa com definição de vagas, local, horários e materiais.
+* **Gestão de Usuários:** Controle de acesso, edição de perfis e elevação de privilégios.
+* **Monitoramento de Inscrições:** Visualização em tempo real de quem vai participar.
+* **Dashboard Estatístico:** Gráficos intuitivos sobre adesão, tipos de eventos mais procurados e satisfação.
+* **Relatórios Exportáveis:** Geração de dados em CSV/TXT para análise externa.
 
-# Execute o servidor
-npm start     # ou python manage.py runserver
+---
+
+## 🛠️ Tecnologias & Ferramentas
+
+### Stack Principal
+* **Frontend:** [React](https://react.dev/) (Vite), [Tailwind CSS](https://tailwindcss.com/), [Shadcn/UI](https://ui.shadcn.com/), Axios.
+* **Backend:** [Python 3.12+](https://www.python.org/), [FastAPI](https://fastapi.tiangolo.com/), SQLAlchemy (Async), Pydantic.
+* **Banco de Dados:** [PostgreSQL](https://www.postgresql.org/).
+
+### Ferramentas de Desenvolvimento
+* **Editor:** [VS Code](https://code.visualstudio.com/)
+* **Versionamento:** [Git](https://git-scm.com/)
+* **Gerenciador de Banco:** [pgAdmin 4](https://www.pgadmin.org/)
+
+---
+
+## 🧪 Roteiro de Testes (Passo a Passo)
+
+Para validar todas as funcionalidades do sistema, sugerimos o seguinte fluxo:
+
+1. **Cadastro Inicial:**
+   * Acesse a tela de login e clique em "Cadastrar". Crie um usuário comum.
+
+2. **Exploração:**
+   * Navegue pela *Home* e veja os eventos disponíveis. Entre nos detalhes de um evento.
+
+3. **Inscrição:**
+   * Inscreva-se em um evento e vá para o menu *"Meu Painel"* para confirmar sua presença.
+
+4. **Acesso Administrativo:**
+   * *Nota:* O usuário criado inicialmente não tem permissão de Admin. Siga o guia abaixo ("Contas de Acesso") para liberar esse acesso.
+
+5. **Gestão Completa (Como Admin):**
+   * Crie um novo evento na aba *"Criar Evento"*.
+   * Verifique os gráficos na aba *"Estatísticas"*.
+   * Gerencie outros usuários na aba *"Usuários"*.
+
+---
+
+## 🔑 Contas de Acesso & Configuração Inicial
+
+Como o banco de dados é iniciado vazio, **não existem contas padrão**. Você deve criar o primeiro Administrador manualmente:
+
+1. **Cadastre-se** no sistema normalmente (ex: `admin@teste.com`).
+
+2. Acesse seu banco de dados **PostgreSQL** (via pgAdmin ou terminal).
+
+3. Execute a query para promover seu usuário:
+   ```sql
+   UPDATE users SET role = 'admin' WHERE email = 'admin@teste.com';
+
+## ⚙️ Compilação e Execução
+O projeto é dividido em dois módulos principais. Para rodar o sistema completo, você precisará de dois terminais abertos.
+
+1. Backend (API Python)
+Toda a lógica de negócios e conexão com o banco. 📄 [Guia Detalhado: Como configurar e rodar o Backend](backend/HOW_TO_EXECUTE.md)
+
+2. Frontend (Interface React)
+A interface visual onde os usuários interagem. 📄 [Guia Detalhado: Como configurar e rodar o Frontend](frontend/HOW_TO_EXECUTE.md)
 
